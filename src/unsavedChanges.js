@@ -125,6 +125,11 @@ angular.module('unsavedChanges', ['resettable'])
                     return logEnabled;
                 }
             });
+            Object.defineProperty(publicInterface, 'dirtynessProperty', {
+                get: function() {
+                    return dirtynessProperty;
+                }
+            });
 
             return publicInterface;
         }
