@@ -14,7 +14,7 @@ angular.module('unsavedChanges', ['resettable'])
     var routeEvent = ['$locationChangeStart', '$stateChangeStart'];
     var navigateMessage = 'You will lose unsaved changes if you leave this page';
     var reloadMessage = 'You will lose unsaved changes if you reload this page';
-
+    var dirtynessProperty="$dirty";
     Object.defineProperty(_this, 'navigateMessage', {
         get: function() {
             return navigateMessage;
@@ -59,7 +59,17 @@ angular.module('unsavedChanges', ['resettable'])
             logEnabled = !! (value);
         }
     });
-
+    
+    Object.defineProperty(_this, 'dirtynessProperty', {
+        get: function() {
+            return dirtynessProperty;
+        },
+        set: function(value) {
+            if(typeof value==="string" && value!==""){
+                dirtynessProperty = value;    
+            }
+        }
+    });
     this.$get = ['$injector',
         function($injector) {
 
@@ -141,8 +151,8 @@ angular.module('unsavedChanges', ['resettable'])
         function allFormsClean() {
             areAllFormsClean = true;
             angular.forEach(allForms, function(item, idx) {
-                unsavedWarningsConfig.log('Form : ' + item.$name + ' dirty : ' + item.modified);
-                if (item.modified) {
+                unsavedWarningsConfig.log('Form : ' + item.$name + ' dirty : ' + item[dirtynessProperty]);
+                if (item[dirtynessProperty]) {
                     areAllFormsClean = false;
                 }
             });
