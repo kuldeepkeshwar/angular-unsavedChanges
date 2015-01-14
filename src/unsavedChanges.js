@@ -151,8 +151,8 @@ angular.module('unsavedChanges', ['resettable'])
         function allFormsClean() {
             areAllFormsClean = true;
             angular.forEach(allForms, function(item, idx) {
-                unsavedWarningsConfig.log('Form : ' + item.$name + ' dirty : ' + item[dirtynessProperty]);
-                if (item[dirtynessProperty]) {
+                unsavedWarningsConfig.log('Form : ' + item.$name + ' dirty : ' + item[unsavedWarningsConfig.dirtynessProperty]);
+                if (item[unsavedWarningsConfig.dirtynessProperty]) {
                     areAllFormsClean = false;
                 }
             });
