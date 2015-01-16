@@ -136,8 +136,8 @@ angular.module('unsavedChanges', ['resettable'])
     ];
 })
 
-.service('unsavedWarningSharedService', ['$rootScope', 'unsavedWarningsConfig', '$injector', '$window',
-    function($rootScope, unsavedWarningsConfig, $injector, $window) {
+.service('unsavedWarningSharedService', ['$rootScope', 'unsavedWarningsConfig', '$injector', '$window','unsavedChangesIgnoreElement',
+    function($rootScope, unsavedWarningsConfig, $injector, $window,unsavedChangesIgnoreElement) {
 
         // Controller scopped variables
         var _this = this;
@@ -196,7 +196,11 @@ angular.module('unsavedChanges', ['resettable'])
 
         // Function called when user tries to close the window
         this.confirmExit = function() {
-            if (!allFormsClean()) return unsavedWarningsConfig.reloadMessage;
+            if (!allFormsClean() && !unsavedChangesIgnoreElement.element){
+                unsavedChangesIgnoreElement.element=null;
+                return unsavedWarningsConfig.reloadMessage;
+            } 
+            unsavedChangesIgnoreElement.element=null;
             $rootScope.$broadcast('resetResettables');
             tearDown();
         };
@@ -216,7 +220,7 @@ angular.module('unsavedChanges', ['resettable'])
                 var removeFn = $rootScope.$on(aEvent, function(event, next, current) {
                     unsavedWarningsConfig.log("user is moving with " + aEvent);
                     // @todo this could be written a lot cleaner!
-                    if (!allFormsClean()) {
+                    if (!allFormsClean() && !unsavedChangesIgnoreElement.element) {
                         unsavedWarningsConfig.log("a form is dirty");
                         if (!confirm(unsavedWarningsConfig.navigateMessage)) {
                             unsavedWarningsConfig.log("user wants to cancel leaving");
@@ -229,6 +233,7 @@ angular.module('unsavedChanges', ['resettable'])
                         unsavedWarningsConfig.log("all forms are clean");
                     }
 
+                    unsavedChangesIgnoreElement.element=null;
                 });
                 removeFunctions.push(removeFn);
             });
@@ -251,7 +256,22 @@ angular.module('unsavedChanges', ['resettable'])
         };
     }
 ])
-
+.directive('unsavedChangesIgnore',['unsavedChangesIgnoreElement',function(unsavedChangesIgnoreElement){
+  function _handler(e){
+    var _el=this;
+    if(_el.href && _el.href!==""){
+          unsavedChangesIgnoreElement.element=_el; 
+    }
+  }
+  return {
+      restrict: "A",
+      link: function(scope, element, attrs) {
+        element.bind('click',_handler);
+      }
+  }
+}]).value('unsavedChangesIgnoreElement',{
+    element:null
+})
 .directive('unsavedWarningForm', ['unsavedWarningSharedService', '$rootScope',
     function(unsavedWarningSharedService, $rootScope) {
         return {
