@@ -258,7 +258,7 @@ angular.module('unsavedChanges', ['resettable'])
 ])
 .directive('unsavedChangesIgnore',['unsavedChangesIgnoreElement',function(unsavedChangesIgnoreElement){
   function _handler(e){
-    var _el=this;
+    var _el=e.target || e.srcElement;
     if(_el.href && _el.href!==""){
           unsavedChangesIgnoreElement.element=_el; 
     }
@@ -268,7 +268,7 @@ angular.module('unsavedChanges', ['resettable'])
       link: function(scope, element, attrs) {
         element.bind('click',_handler);
       }
-  }
+  };
 }]).value('unsavedChangesIgnoreElement',{
     element:null
 })

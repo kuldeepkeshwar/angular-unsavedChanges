@@ -14,7 +14,7 @@ angular.module('unsavedChanges', ['resettable'])
     var routeEvent = ['$locationChangeStart', '$stateChangeStart'];
     var navigateMessage = 'You will lose unsaved changes if you leave this page';
     var reloadMessage = 'You will lose unsaved changes if you reload this page';
-
+    var dirtynessProperty="$dirty";
     Object.defineProperty(_this, 'navigateMessage', {
         get: function() {
             return navigateMessage;
@@ -59,7 +59,17 @@ angular.module('unsavedChanges', ['resettable'])
             logEnabled = !! (value);
         }
     });
-
+    
+    Object.defineProperty(_this, 'dirtynessProperty', {
+        get: function() {
+            return dirtynessProperty;
+        },
+        set: function(value) {
+            if(typeof value==="string" && value!==""){
+                dirtynessProperty = value;    
+            }
+        }
+    });
     this.$get = ['$injector',
         function($injector) {
 
@@ -115,14 +125,19 @@ angular.module('unsavedChanges', ['resettable'])
                     return logEnabled;
                 }
             });
+            Object.defineProperty(publicInterface, 'dirtynessProperty', {
+                get: function() {
+                    return dirtynessProperty;
+                }
+            });
 
             return publicInterface;
         }
     ];
 })
 
-.service('unsavedWarningSharedService', ['$rootScope', 'unsavedWarningsConfig', '$injector', '$window',
-    function($rootScope, unsavedWarningsConfig, $injector, $window) {
+.service('unsavedWarningSharedService', ['$rootScope', 'unsavedWarningsConfig', '$injector', '$window','unsavedChangesIgnoreElement',
+    function($rootScope, unsavedWarningsConfig, $injector, $window,unsavedChangesIgnoreElement) {
 
         // Controller scopped variables
         var _this = this;
@@ -141,8 +156,8 @@ angular.module('unsavedChanges', ['resettable'])
         function allFormsClean() {
             areAllFormsClean = true;
             angular.forEach(allForms, function(item, idx) {
-                unsavedWarningsConfig.log('Form : ' + item.$name + ' dirty : ' + item.$dirty);
-                if (item.$dirty) {
+                unsavedWarningsConfig.log('Form : ' + item.$name + ' dirty : ' + item[unsavedWarningsConfig.dirtynessProperty]);
+                if (item[unsavedWarningsConfig.dirtynessProperty]) {
                     areAllFormsClean = false;
                 }
             });
@@ -181,7 +196,11 @@ angular.module('unsavedChanges', ['resettable'])
 
         // Function called when user tries to close the window
         this.confirmExit = function() {
-            if (!allFormsClean()) return unsavedWarningsConfig.reloadMessage;
+            if (!allFormsClean() && !unsavedChangesIgnoreElement.element){
+                unsavedChangesIgnoreElement.element=null;
+                return unsavedWarningsConfig.reloadMessage;
+            } 
+            unsavedChangesIgnoreElement.element=null;
             $rootScope.$broadcast('resetResettables');
             tearDown();
         };
@@ -201,7 +220,7 @@ angular.module('unsavedChanges', ['resettable'])
                 var removeFn = $rootScope.$on(aEvent, function(event, next, current) {
                     unsavedWarningsConfig.log("user is moving with " + aEvent);
                     // @todo this could be written a lot cleaner!
-                    if (!allFormsClean()) {
+                    if (!allFormsClean() && !unsavedChangesIgnoreElement.element) {
                         unsavedWarningsConfig.log("a form is dirty");
                         if (!confirm(unsavedWarningsConfig.navigateMessage)) {
                             unsavedWarningsConfig.log("user wants to cancel leaving");
@@ -214,6 +233,7 @@ angular.module('unsavedChanges', ['resettable'])
                         unsavedWarningsConfig.log("all forms are clean");
                     }
 
+                    unsavedChangesIgnoreElement.element=null;
                 });
                 removeFunctions.push(removeFn);
             });
@@ -236,7 +256,22 @@ angular.module('unsavedChanges', ['resettable'])
         };
     }
 ])
-
+.directive('unsavedChangesIgnore',['unsavedChangesIgnoreElement',function(unsavedChangesIgnoreElement){
+  function _handler(e){
+    var _el=e.target || e.srcElement;
+    if(_el.href && _el.href!==""){
+          unsavedChangesIgnoreElement.element=_el; 
+    }
+  }
+  return {
+      restrict: "A",
+      link: function(scope, element, attrs) {
+        element.bind('click',_handler);
+      }
+  };
+}]).value('unsavedChangesIgnoreElement',{
+    element:null
+})
 .directive('unsavedWarningForm', ['unsavedWarningSharedService', '$rootScope',
     function(unsavedWarningSharedService, $rootScope) {
         return {
